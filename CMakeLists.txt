@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(ap1_msgs REQUIRED)
 
 add_executable(control_node 
     src/main.cpp
@@ -23,6 +24,7 @@ ament_target_dependencies(
   "rclcpp"
   "std_msgs"
   "geometry_msgs"
+  "ap1_msgs"
 )
 
 install(TARGETS 
