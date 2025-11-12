@@ -14,6 +14,7 @@ find_package(ap1_msgs REQUIRED)
 
 add_executable(control_node 
     src/main.cpp
+    src/ackermann_controller.cpp
 )
 target_include_directories(control_node PUBLIC 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
