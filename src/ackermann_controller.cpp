@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -73,7 +74,12 @@ std::unordered_map<std::string, double> load_csv_config(const std::string& path)
     return config;
 }
 
-AckermannController::AckermannController(const Config& cfg) : cfg_(cfg) {}
+AckermannController::AckermannController(const Config& cfg) : cfg_(cfg)
+{
+    printf("Created Ackermann Controller with config: a_max=%f, delta_max=%f, L=%f, "
+           "throttle_gain=%f\n",
+           cfg_.a_max, cfg_.delta_max, cfg_.L, cfg_.throttle_gain);
+}
 
 // we should move everything over to double but I already wrote all the message types in float
 // and I'm too lazy to switch so we'll do it later

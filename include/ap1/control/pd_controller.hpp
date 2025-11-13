@@ -41,7 +41,7 @@ class PDController : public IController
     float kp_, kd_;
 
   public:
-    PDController(float kp = 2.0, float kd = 0.5) : kp_(kp), kd_(kd){};
+    PDController(float kp = 2.0, float kd = 0.5) : kp_(kp), kd_(kd) {};
 
     // computes accceleration according to a pid controller
     // currently stores vectors half in the ROS *Point* format and half in

@@ -6,6 +6,10 @@
 #ifndef AP1_CONTROL_NODE_HPP
 #define AP1_CONTROL_NODE_HPP
 
+#include <format>
+#include <iostream>
+#include <string>
+
 #include "rclcpp/rclcpp.hpp"
 
 #include "ap1_msgs/msg/motor_power_stamped.hpp"
@@ -97,9 +101,15 @@ class ControlNode : public rclcpp::Node
             target_path_.path.at(0),    // for now get the first path waypoint
             speed_profile_.speeds.at(0) // and the first speed value
         );
+        std::string s = "ACC: " + std::to_string(acc.at(0)) + ", " + std::to_string(acc.at(1)) +
+                        ", " + std::to_string(acc.at(2));
+        RCLCPP_INFO(this->get_logger(), s.c_str());
 
         // compute acc and throttle using ackermann controller
         AckermannController::Command cmd = ackermann_controller_.compute_command(acc, velocity);
+        s = "CMD: {throttle:" + std::to_string(cmd.throttle) +
+            ", steering:" + std::to_string(cmd.steering) + "}";
+        RCLCPP_INFO(this->get_logger(), s.c_str());
 
         // pack the turn angle into a message
         ap1_msgs::msg::TurnAngleStamped turn_msg;
@@ -112,6 +122,7 @@ class ControlNode : public rclcpp::Node
         pwr_msg.header.stamp = this->now();
         pwr_msg.header.frame_id = "base_link";
         pwr_msg.power = cmd.throttle; // [-1, 1]
+        // pwr_msg.power = 1.0f;
 
         // send both messages out
         turning_angle_pub_->publish(turn_msg);
@@ -142,10 +153,10 @@ class ControlNode : public rclcpp::Node
         // # Publishers
         // - TURNING ANGLE
         turning_angle_pub_ =
-            this->create_publisher<ap1_msgs::msg::TurnAngleStamped>("ap1/control/motor_power", 10);
+            this->create_publisher<ap1_msgs::msg::TurnAngleStamped>("ap1/control/turn_angle", 10);
         // - MOTOR POWER
         motor_power_pub_ =
-            this->create_publisher<ap1_msgs::msg::MotorPowerStamped>("ap1/control/turn_angle", 10);
+            this->create_publisher<ap1_msgs::msg::MotorPowerStamped>("ap1/control/motor_power", 10);
 
         // # Create Control Loop
         // fire at rate_hz
