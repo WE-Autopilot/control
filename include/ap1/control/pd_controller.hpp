@@ -10,7 +10,9 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
-#include <vector>
+# include <vector>
+
+#include "vectors.hpp"
 
 #include "geometry_msgs/msg/point.hpp"
 
@@ -18,78 +20,48 @@
 
 #define EPSILON 1e-6
 
-// THESE SHOULD NOT BE HERE GANG
-// very uncouth.
-inline float length(geometry_msgs::msg::Point p)
-{
-    return std::sqrt(std::pow(p.x, 2) + std::pow(p.y, 2));
-}
-
-inline geometry_msgs::msg::Point get_norm(geometry_msgs::msg::Point p)
-{
-    const float l = length(p);
-    geometry_msgs::msg::Point p2;
-    p2.x = p.x / l;
-    p2.y = p.y / l;
-    p2.z = p.z / l;
-    return p2;
-}
-
 namespace ap1::control
 {
 class PDController : public IController
 {
+    // Stength of the proportional and derivative terms
     float kp_, kd_;
-    std::vector<float> last_vel_;
+    //Last velocoty vector
+    vec3 last_vel_;
 
   public:
     PDController(float kp = 2.0, float kd = 0.5) : kp_(kp), kd_(kd) {};
 
-    // computes accceleration according to a pid controller
-    // currently stores vectors half in the ROS *Point* format and half in
-    // std::vectors. This is super not sigma and we should isolate out both with a
-    // vec class for all of ap1 (since ros2 points don't have scalar mult, dot, or
-    // cross or anything).
-    virtual std::vector<float> compute_acceleration(std::vector<float> vel,
-                                                    geometry_msgs::msg::Point target_pos,
-                                                    float target_speed) override
+    // Computes acceleration based on current velocity, target position, and target speed. Returns acceleration vector.
+    virtual vec3 compute_acceleration(vec3 vel, geometry_msgs::msg::Point target_pos, float target_speed) override
     {
-        // CHECKS
-        // if vel contains less than 3 vals throw an error
-        if (vel.size() < 3)
-        {
-            throw std::invalid_argument("vel must have at least three elements (x, y, z).");
-        }
+        // Convert target position to vec3 and calculate distance
+        vec3 vecTargetPos(target_pos.x, target_pos.y, target_pos.z);
+        const float distance = vecTargetPos.length();
 
-        const float distance = length(target_pos);
-        geometry_msgs::msg::Point target_dir;
-
+        // targetDir for normalizing target position into unit direction
+        vec3 targetDir;
         if (distance > EPSILON)
-            target_dir = get_norm(target_pos);
+            targetDir = unit_vector(vecTargetPos);
         else
         {
-            target_dir.x = 0;
-            target_dir.y = 0;
-            target_dir.z = 0;
+            targetDir = vec3(0.0, 0.0, 0.0);
         }
 
-        float target_vel_x = target_dir.x * target_speed;
-        std::cout << "target_dir_x (SHOULD BE 1): " << target_dir.x
-                  << ". target_vel_x (should be target speed): " << target_vel_x << "\n";
-        float target_vel_y = target_dir.y * target_speed;
-        float target_vel_z = target_dir.z * target_speed;
+        // Scale direction vector by target speed for velocity
+        vec3 targetVel = targetDir * target_speed;
 
-        // keep track of last vel
-        // so we can approximate derivative of v
-        // as v2 - v1
+        std::cout << "target_dir_x (SHOULD BE 1): " << targetDir.x << ", target_dir_y: " << targetDir.y
+                  << "\ntarget_vel_x (should be target speed): " << targetVel.x << "\n";
+
+        // Store current velocity for derivative approximation
         last_vel_ = vel;
 
-        std::vector<float> drv{vel.at(0) - last_vel_.at(0), vel.at(1) - last_vel_.at(1),
-                               vel.at(2) - last_vel_.at(2)};
+        // Calculate velocity change (numerical derivative)
+        vec3 drv = vel - last_vel_;
 
-        std::vector<float> acc{kp_ * (target_vel_x - vel.at(0)) - kd_ * drv.at(0),
-                               kp_ * (target_vel_y - vel.at(1)) - kd_ * drv.at(1),
-                               kp_ * (target_vel_z - vel.at(2)) - kd_ * drv.at(2)};
+        // PD controller: proportional term tracks target velocity, derivative term adds damping
+        vec3 acc = kp_* (targetVel - vel) - kd_ * drv;
 
         return acc;
     };

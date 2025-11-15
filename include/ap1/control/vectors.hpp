@@ -1,5 +1,5 @@
-#ifndef vectors_hpp
-#define vectors_hpp
+#ifndef AP1_vectors_hpp
+#define AP1_vectors_hpp
 
 /**
  * Class for 2d and 3d vectos
