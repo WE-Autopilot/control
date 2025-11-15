@@ -9,6 +9,7 @@
 
 #include <vector>
 
+#include "vectors.hpp"
 #include "geometry_msgs/msg/point.hpp"
 
 namespace ap1::control
@@ -17,9 +18,7 @@ class IController
 {
   public:
     ~IController() = default;
-    virtual std::vector<float> compute_acceleration(std::vector<float> vel,
-                                                    geometry_msgs::msg::Point target_pos,
-                                                    float target_speed) = 0;
+    virtual vec3 compute_acceleration(vec3 vel, geometry_msgs::msg::Point target_pos, float target_speed) = 0;
 };
 } // namespace ap1::control
 
