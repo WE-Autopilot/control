@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 
+#include "vectors.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 #include "ap1_msgs/msg/motor_power_stamped.hpp"
@@ -81,8 +82,7 @@ class ControlNode : public rclcpp::Node
     void control_loop_callback()
     {
         // the car's current velocity. we only support moving forward atp
-        const std::vector<float> velocity{this->vehicle_speed_.speed, 0,
-                                          0}; // which direction is up? assuming +x
+        const vec3 velocity(this->vehicle_speed_.speed, 0, 0); // which direction is up? assuming +x
 
         const bool PATH_IS_STALE = false, SPEED_PROFILE_IS_STALE = false; // TEMP
 
@@ -97,13 +97,13 @@ class ControlNode : public rclcpp::Node
         if (speed_profile_.speeds.size() < 1 || SPEED_PROFILE_IS_STALE)
             return;
 
-        const std::vector<float> acc = controller_->compute_acceleration(
+        const vec3 acc = controller_->compute_acceleration(
             velocity,
             target_path_.path.at(0),    // for now get the first path waypoint
             speed_profile_.speeds.at(0) // and the first speed value
         );
-        std::string s = "ACC: " + std::to_string(acc.at(0)) + ", " + std::to_string(acc.at(1)) +
-                        ", " + std::to_string(acc.at(2));
+        std::string s = "ACC: " + std::to_string(acc.x) + ", " + std::to_string(acc.y) +
+                        ", " + std::to_string(acc.z);
         RCLCPP_INFO(this->get_logger(), s.c_str());
 
         // compute acc and throttle using ackermann controller

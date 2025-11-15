@@ -87,7 +87,7 @@ AckermannController::Command AckermannController::compute_command(
     // notice all vectors are literall std::vector<double>'s in the codebase so far
     // this is beyond cooked but will do for now.
     // vec[0] = x, vec[1] = y, vec[2] = z, and anything else is wabisabi
-    const std::vector<float>& acc, const std::vector<float>& vel)
+    const vec3& acc, const vec3& vel)
 {
     Command cmd{};
 

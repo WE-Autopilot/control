@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+#include "vectors.hpp"
 
 namespace ap1::control
 {
@@ -32,7 +33,7 @@ class AckermannController
         double steering; // in rads
     };
 
-    Command compute_command(const std::vector<float> &acc, const std::vector<float> &vel);
+    Command compute_command(const vec3 acc, const vec3 vel);
 
     static Config load_config(const std::string &path);
 
