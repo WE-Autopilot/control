@@ -80,6 +80,7 @@ class ControlNode : public rclcpp::Node
 
     void control_loop_callback()
     {
+        // the car's current velocity. we only support moving forward atp
         const std::vector<float> velocity{this->vehicle_speed_.speed, 0,
                                           0}; // which direction is up? assuming +x
 

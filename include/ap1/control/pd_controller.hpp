@@ -8,6 +8,7 @@
 #define AP1_PD_CONTROLLER_HPP
 
 #include <cmath>
+#include <iostream>
 #include <stdexcept>
 #include <vector>
 
@@ -39,6 +40,7 @@ namespace ap1::control
 class PDController : public IController
 {
     float kp_, kd_;
+    std::vector<float> last_vel_;
 
   public:
     PDController(float kp = 2.0, float kd = 0.5) : kp_(kp), kd_(kd) {};
@@ -72,12 +74,22 @@ class PDController : public IController
         }
 
         float target_vel_x = target_dir.x * target_speed;
+        std::cout << "target_dir_x (SHOULD BE 1): " << target_dir.x
+                  << ". target_vel_x (should be target speed): " << target_vel_x << "\n";
         float target_vel_y = target_dir.y * target_speed;
         float target_vel_z = target_dir.z * target_speed;
 
-        std::vector<float> acc{kp_ * (target_vel_x - vel.at(0)) - kd_ * vel.at(0),
-                               kp_ * (target_vel_y - vel.at(1)) - kd_ * vel.at(1),
-                               kp_ * (target_vel_z - vel.at(2)) - kd_ * vel.at(2)};
+        // keep track of last vel
+        // so we can approximate derivative of v
+        // as v2 - v1
+        last_vel_ = vel;
+
+        std::vector<float> drv{vel.at(0) - last_vel_.at(0), vel.at(1) - last_vel_.at(1),
+                               vel.at(2) - last_vel_.at(2)};
+
+        std::vector<float> acc{kp_ * (target_vel_x - vel.at(0)) - kd_ * drv.at(0),
+                               kp_ * (target_vel_y - vel.at(1)) - kd_ * drv.at(1),
+                               kp_ * (target_vel_z - vel.at(2)) - kd_ * drv.at(2)};
 
         return acc;
     };
