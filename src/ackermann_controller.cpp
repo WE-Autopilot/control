@@ -19,29 +19,6 @@
 
 namespace ap1::control
 {
-
-// ideally we should have a vector class with all of these functions defined in it
-float mag(const std::vector<float>& v)
-{
-    if (v.size() < 3)
-        return 0;
-
-    return std::sqrt(std::pow(v.at(0), 2) + std::pow(v.at(1), 2) + std::pow(v.at(2), 2));
-}
-
-std::vector<float> norm(const std::vector<float>& v)
-{
-    if (v.size() < 3)
-        return {};
-
-    const float m = mag(v);
-
-    if (m == 0)
-        return {};
-
-    return {v.at(0) / m, v.at(1) / m, v.at(2) / m};
-}
-
 // also this should be moved to a csv/config loader
 std::unordered_map<std::string, double> load_csv_config(const std::string& path)
 {
@@ -83,18 +60,19 @@ AckermannController::AckermannController(const Config& cfg) : cfg_(cfg)
 
 // we should move everything over to double but I already wrote all the message types in float
 // and I'm too lazy to switch so we'll do it later
-AckermannController::Command AckermannController::compute_command(
-    // notice all vectors are literall std::vector<double>'s in the codebase so far
-    // this is beyond cooked but will do for now.
-    // vec[0] = x, vec[1] = y, vec[2] = z, and anything else is wabisabi
-    const vec3& acc, const vec3& vel)
+AckermannController::Command AckermannController::compute_command(const vec3& acc, const vec3& vel)
 {
     Command cmd{};
 
-    double a_long = std::clamp((double)acc.at(0), -cfg_.a_max, cfg_.a_max);
+    double a_long = std::clamp(
+        (double)acc.x(),
+        -cfg_.a_max, 
+        cfg_.a_max
+    );
+
     double a_lat = acc[1];
 
-    double v = mag(vel);
+    double v = vel.length();
     double kappa = (v > EPSILON) ? a_lat / (v * v) : 0.0;
     double delta = std::atan(cfg_.L * kappa);
     delta = std::clamp(delta, -cfg_.delta_max, cfg_.delta_max);

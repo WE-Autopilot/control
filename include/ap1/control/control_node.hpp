@@ -10,7 +10,6 @@
 #include <iostream>
 #include <string>
 
-#include "vectors.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 #include "ap1_msgs/msg/motor_power_stamped.hpp"
@@ -22,6 +21,7 @@
 #include "ap1/control/ackermann_controller.hpp"
 #include "ap1/control/icontroller.hpp"
 #include "ap1/control/pd_controller.hpp"
+#include "ap1/control/vectors.hpp"
 
 namespace ap1::control
 {
