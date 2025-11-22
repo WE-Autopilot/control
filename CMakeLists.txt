@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.8)
 project(ap1_control)
 
+option(AP1_CONTROL_SUPPORT_ACKERMANN "Enable ackermann command output" ON)
+
+if(AP1_CONTROL_SUPPORT_ACKERMANN)
+  add_compile_definitions(AP1_CONTROL_SUPPORT_ACKERMANN)
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -10,6 +16,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(ackermann_msgs REQUIRED)
 
 add_executable(control_node src/main.cpp)
 target_include_directories(control_node PUBLIC 
@@ -21,6 +28,7 @@ ament_target_dependencies(
   "rclcpp"
   "std_msgs"
   "geometry_msgs"
+  "ackermann_msgs"
 )
 
 install(TARGETS 
