@@ -18,7 +18,7 @@ class IController
 {
   public:
     ~IController() = default;
-    virtual vec3 compute_acceleration(vec3 vel, geometry_msgs::msg::Point target_pos, float target_speed) = 0;
+    virtual vec3f compute_acceleration(const vec3f& vel, const vec2f& target_pos, const float target_speed) = 0;
 };
 } // namespace ap1::control
 

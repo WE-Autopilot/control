@@ -9,7 +9,6 @@
 #define AP1_ACKERMANN_CONTROLLER_HPP
 
 #include <string>
-#include <vector>
 #include "vectors.hpp"
 
 namespace ap1::control
@@ -33,7 +32,7 @@ class AckermannController
         double steering; // in rads
     };
 
-    Command compute_command(const vec3& acc, const vec3& vel);
+    Command compute_command(const vec3f& acc, const vec3f& vel);
 
     static Config load_config(const std::string &path);
 

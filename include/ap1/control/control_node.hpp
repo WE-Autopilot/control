@@ -21,7 +21,7 @@
 #include "ap1/control/ackermann_controller.hpp"
 #include "ap1/control/icontroller.hpp"
 #include "ap1/control/pd_controller.hpp"
-#include "ap1/control/vectors.hpp"
+#include "vectors.hpp"
 
 namespace ap1::control
 {
@@ -82,7 +82,7 @@ class ControlNode : public rclcpp::Node
     void control_loop_callback()
     {
         // the car's current velocity. we only support moving forward atp
-        const vec3 velocity(this->vehicle_speed_.speed, 0, 0); // which direction is up? assuming +x
+        const vec3f velocity(this->vehicle_speed_.speed, 0, 0); // which direction is up? assuming +x
 
         const bool PATH_IS_STALE = false, SPEED_PROFILE_IS_STALE = false; // TEMP
 
@@ -97,9 +97,10 @@ class ControlNode : public rclcpp::Node
         if (speed_profile_.speeds.size() < 1 || SPEED_PROFILE_IS_STALE)
             return;
 
-        const vec3 acc = controller_->compute_acceleration(
+        auto next_waypoint = target_path_.path.at(0);
+        const vec3f acc = controller_->compute_acceleration(
             velocity,
-            target_path_.path.at(0),    // for now get the first path waypoint
+            vec2f(next_waypoint.x, next_waypoint.y),    // for now get the first path waypoint
             speed_profile_.speeds.at(0) // and the first speed value
         );
         std::string s = "ACC: " + std::to_string(acc.x) + ", " + std::to_string(acc.y) +

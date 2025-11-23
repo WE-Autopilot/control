@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "vectors.hpp"
 #include "ap1/control/ackermann_controller.hpp"
 
 #define EPSILON 1e-3
@@ -60,20 +61,20 @@ AckermannController::AckermannController(const Config& cfg) : cfg_(cfg)
 
 // we should move everything over to double but I already wrote all the message types in float
 // and I'm too lazy to switch so we'll do it later
-AckermannController::Command AckermannController::compute_command(const vec3& acc, const vec3& vel)
+AckermannController::Command AckermannController::compute_command(const vec3f& acc, const vec3f& vel)
 {
     Command cmd{};
 
     double a_long = std::clamp(
-        (double)acc.x(),
+        (double)acc.x,
         -cfg_.a_max, 
         cfg_.a_max
     );
 
-    double a_lat = acc[1];
+    double a_lat = acc.y;
 
-    double v = vel.length();
-    double kappa = (v > EPSILON) ? a_lat / (v * v) : 0.0;
+    double speed = vel.length();
+    double kappa = (speed > EPSILON) ? a_lat / (speed * speed) : 0.0;
     double delta = std::atan(cfg_.L * kappa);
     delta = std::clamp(delta, -cfg_.delta_max, cfg_.delta_max);
 
