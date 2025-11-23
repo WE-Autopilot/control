@@ -18,6 +18,7 @@ find_package(ap1_msgs REQUIRED)
 
 add_executable(control_node 
     src/main.cpp
+    src/control_node.cpp
     src/ackermann_controller.cpp
 )
 target_include_directories(control_node PUBLIC 
