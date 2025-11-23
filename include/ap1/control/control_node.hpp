@@ -12,6 +12,10 @@
 #include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/point32.hpp"
 
+#ifdef AP1_CONTROL_SUPPORT_ACKERMANN
+#include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
+#endif
+
 namespace ap1::control {
     class ControlNode : public rclcpp::Node {
     private:
@@ -33,6 +37,9 @@ namespace ap1::control {
         // Pubs
         rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr turning_angle_pub_;
         rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr motor_power_pub_; // between -1 and 1? probably
+        #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
+        rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_pub_;
+        #endif
     public:
         ControlNode() : Node("control_node") {
             // # All inputs shabooya
@@ -50,6 +57,13 @@ namespace ap1::control {
             turning_angle_pub_ = this->create_publisher<std_msgs::msg::Float32>("turning_angle", 10);
             // - MOTOR POWER
             motor_power_pub_ = this->create_publisher<std_msgs::msg::Float32>("motor_power", 10);
+            
+            #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
+            ackermann_pub_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
+                "/ap1/control/ackermann_cmd", 10
+            );
+            #endif
+
 
             RCLCPP_INFO(this->get_logger(), "Control Node initialized");
         }
