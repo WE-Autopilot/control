@@ -6,54 +6,63 @@
 #ifndef AP1_CONTROL_NODE_HPP
 #define AP1_CONTROL_NODE_HPP
 
+#include <iostream>
+#include <string>
+
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/float32.hpp"
-#include "std_msgs/msg/float32_multi_array.hpp"
-#include "geometry_msgs/msg/point.hpp"
-#include "geometry_msgs/msg/point32.hpp"
 
-namespace ap1::control {
-    class ControlNode : public rclcpp::Node {
-    private:
-        void on_speed_profile(const std_msgs::msg::Float32MultiArray::SharedPtr) {
-            // todo: implement
-            RCLCPP_INFO(this->get_logger(), "Received Speed Profile from Planning");
-        }
+#include "ap1_msgs/msg/motor_power_stamped.hpp"
+#include "ap1_msgs/msg/speed_profile_stamped.hpp"
+#include "ap1_msgs/msg/target_path_stamped.hpp"
+#include "ap1_msgs/msg/turn_angle_stamped.hpp"
+#include "ap1_msgs/msg/vehicle_speed_stamped.hpp"
 
-        void on_path(const std_msgs::msg::Float32MultiArray::SharedPtr) {
-            // todo: implement
-            RCLCPP_INFO(this->get_logger(), "Received new path from Planning");
-        }
+#include "ap1/control/ackermann_controller.hpp"
+#include "ap1/control/icontroller.hpp"
 
-        // Fields
-        // Subs
-        rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr speed_profile_sub_;
-        rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr target_path_sub_;
+namespace ap1::control
+{
+class ControlNode : public rclcpp::Node
+{
+  private:
+    // Fields
 
-        // Pubs
-        rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr turning_angle_pub_;
-        rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr motor_power_pub_; // between -1 and 1? probably
-    public:
-        ControlNode() : Node("control_node") {
-            // # All inputs shabooya
-            // - SPEED PROFILE
-            speed_profile_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
-                "speed_profile", 10, std::bind(&ControlNode::on_speed_profile, this, std::placeholders::_1)
-            );
-            // - TARGET PATH
-            target_path_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
-                "target_path", 10, std::bind(&ControlNode::on_path, this, std::placeholders::_1)
-            );
-        
-            // # Publishers
-            // - TURNING ANGLE
-            turning_angle_pub_ = this->create_publisher<std_msgs::msg::Float32>("turning_angle", 10);
-            // - MOTOR POWER
-            motor_power_pub_ = this->create_publisher<std_msgs::msg::Float32>("motor_power", 10);
+    // Control Loop
+    const double rate_hz_;
+    rclcpp::TimerBase::SharedPtr timer_;
 
-            RCLCPP_INFO(this->get_logger(), "Control Node initialized");
-        }
-    };
-}
+    // Controller
+    std::unique_ptr<IController> controller_;
+    AckermannController ackermann_controller_;
+
+    // Memory
+    // half these types are very unnecessary, we should just have stampedfloat or
+    // stamped double or something
+    ap1_msgs::msg::SpeedProfileStamped speed_profile_;
+    ap1_msgs::msg::TargetPathStamped target_path_;
+    ap1_msgs::msg::VehicleSpeedStamped vehicle_speed_;
+    ap1_msgs::msg::TurnAngleStamped vehicle_turn_angle;
+
+    // Subs
+    rclcpp::Subscription<ap1_msgs::msg::TargetPathStamped>::SharedPtr target_path_sub_;
+    rclcpp::Subscription<ap1_msgs::msg::SpeedProfileStamped>::SharedPtr speed_profile_sub_;
+    rclcpp::Subscription<ap1_msgs::msg::VehicleSpeedStamped>::SharedPtr vehicle_speed_sub_;
+    rclcpp::Subscription<ap1_msgs::msg::TurnAngleStamped>::SharedPtr vehicle_turn_angle_sub_;
+
+    // Pubs
+    rclcpp::Publisher<ap1_msgs::msg::TurnAngleStamped>::SharedPtr turning_angle_pub_;
+    rclcpp::Publisher<ap1_msgs::msg::MotorPowerStamped>::SharedPtr motor_power_pub_; // between -1 and 1? probably
+
+    // Methods
+    void on_speed_profile(const ap1_msgs::msg::SpeedProfileStamped speed_profile);
+    void on_path(const ap1_msgs::msg::TargetPathStamped target_path);
+    void on_speed(const ap1_msgs::msg::VehicleSpeedStamped speed);
+    void on_turn_angle(const ap1_msgs::msg::TurnAngleStamped turn_angle);
+    void control_loop_callback();
+
+  public:
+    ControlNode(const std::string& cfg_path, float rate_hz = 60);
+};
+} // namespace ap1::control
 
 #endif // AP1_CONTROL_NODE_HPP
