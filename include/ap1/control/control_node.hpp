@@ -39,6 +39,8 @@ namespace ap1::control {
         rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr motor_power_pub_; // between -1 and 1? probably
         #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
         rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_pub_;
+        // timer for publishing outputs
+        rclcpp::TimerBase::SharedPtr timer_; 
         #endif
     public:
         ControlNode() : Node("control_node") {
@@ -60,13 +62,35 @@ namespace ap1::control {
             
             #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
             ackermann_pub_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
-                "/ap1/control/ackermann_cmd", 10
+            "/ap1/control/ackermann_cmd", 10
+            );
+
+            timer_ = this->create_wall_timer(
+            std::chrono::milliseconds(500),
+            [this]() { publish_outputs(1.0, 0.1); }
             );
             #endif
 
-
-            RCLCPP_INFO(this->get_logger(), "Control Node initialized");
         }
+
+        void publish_outputs(float motor_output, float turning_output) {
+            #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
+            ackermann_msgs::msg::AckermannDriveStamped msg;
+            msg.header.stamp = this->now();
+            msg.drive.speed = motor_output;
+            msg.drive.steering_angle = turning_output;
+            ackermann_pub_->publish(msg);
+            #endif
+
+            std_msgs::msg::Float32 motor_msg;
+            motor_msg.data = motor_output;
+            motor_power_pub_->publish(motor_msg);
+
+            std_msgs::msg::Float32 turning_msg;
+            turning_msg.data = turning_output;
+            turning_angle_pub_->publish(turning_msg);
+        }
+
     };
 }
 
