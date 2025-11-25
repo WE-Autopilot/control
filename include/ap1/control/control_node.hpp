@@ -12,6 +12,10 @@
 #include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/point32.hpp"
 
+#ifdef AP1_CONTROL_SUPPORT_TWIST
+#include "geometry_msgs/msg/twist.hpp"
+#endif
+
 #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
 #endif
@@ -39,8 +43,13 @@ namespace ap1::control {
         rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr motor_power_pub_; // between -1 and 1? probably
         #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
         rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_pub_;
-        // timer for publishing outputs
+        // timer for publishing ackermann outputs
         rclcpp::TimerBase::SharedPtr timer_; 
+        #endif
+
+        #ifdef AP1_CONTROL_SUPPORT_TWIST
+        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
+        rclcpp::TimerBase::SharedPtr twist_timer_;
         #endif
     public:
         ControlNode() : Node("control_node") {
@@ -69,6 +78,18 @@ namespace ap1::control {
             std::chrono::milliseconds(500),
             [this]() { publish_outputs(1.0, 0.1); }
             );
+            #endif
+
+            #ifdef AP1_CONTROL_SUPPORT_TWIST
+            twist_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/ap1/control/twist_cmd", 10);
+            twist_timer_ = this->create_wall_timer(
+                std::chrono::milliseconds(500),
+                [this]() {
+                    geometry_msgs::msg::Twist msg;
+                    msg.linear.x = 1.0;   // example forward velocity
+                    msg.angular.z = 0.5;  // example turning rate
+                    twist_pub_->publish(msg);
+                });
             #endif
 
         }

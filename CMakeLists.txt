@@ -2,9 +2,14 @@ cmake_minimum_required(VERSION 3.8)
 project(ap1_control)
 
 option(AP1_CONTROL_SUPPORT_ACKERMANN "Enable ackermann command output" ON)
+option(AP1_CONTROL_SUPPORT_TWIST "Enable Twist publisher" OFF)
 
 if(AP1_CONTROL_SUPPORT_ACKERMANN)
   add_compile_definitions(AP1_CONTROL_SUPPORT_ACKERMANN)
+endif()
+
+if(AP1_CONTROL_SUPPORT_TWIST)
+  add_compile_definitions(AP1_CONTROL_SUPPORT_TWIST)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
