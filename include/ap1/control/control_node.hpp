@@ -6,11 +6,19 @@
 #ifndef AP1_CONTROL_NODE_HPP
 #define AP1_CONTROL_NODE_HPP
 
+#include <iostream>
+#include <string>
+
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/float32.hpp"
-#include "std_msgs/msg/float32_multi_array.hpp"
-#include "geometry_msgs/msg/point.hpp"
-#include "geometry_msgs/msg/point32.hpp"
+
+#include "ap1_msgs/msg/motor_power_stamped.hpp"
+#include "ap1_msgs/msg/speed_profile_stamped.hpp"
+#include "ap1_msgs/msg/target_path_stamped.hpp"
+#include "ap1_msgs/msg/turn_angle_stamped.hpp"
+#include "ap1_msgs/msg/vehicle_speed_stamped.hpp"
+
+#include "ap1/control/ackermann_controller.hpp"
+#include "ap1/control/icontroller.hpp"
 
 #ifdef AP1_CONTROL_SUPPORT_TWIST
 #include "geometry_msgs/msg/twist.hpp"
@@ -20,99 +28,60 @@
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
 #endif
 
-namespace ap1::control {
-    class ControlNode : public rclcpp::Node {
-    private:
-        void on_speed_profile(const std_msgs::msg::Float32MultiArray::SharedPtr) {
-            // todo: implement
-            RCLCPP_INFO(this->get_logger(), "Received Speed Profile from Planning");
-        }
+namespace ap1::control
+{
+class ControlNode : public rclcpp::Node
+{
+  private:
+    // Fields
 
-        void on_path(const std_msgs::msg::Float32MultiArray::SharedPtr) {
-            // todo: implement
-            RCLCPP_INFO(this->get_logger(), "Received new path from Planning");
-        }
+    // Control Loop
+    const double rate_hz_;
+    rclcpp::TimerBase::SharedPtr timer_;
 
-        // Fields
-        // Subs
-        rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr speed_profile_sub_;
-        rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr target_path_sub_;
+    // Controller
+    std::unique_ptr<IController> controller_;
+    AckermannController ackermann_controller_;
 
-        // Pubs
-        rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr turning_angle_pub_;
-        rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr motor_power_pub_; // between -1 and 1? probably
-        #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
-        rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_pub_;
-        // timer for publishing ackermann outputs
-        rclcpp::TimerBase::SharedPtr timer_; 
-        #endif
+    // Memory
+    // half these types are very unnecessary, we should just have stampedfloat or
+    // stamped double or something
+    ap1_msgs::msg::SpeedProfileStamped speed_profile_;
+    ap1_msgs::msg::TargetPathStamped target_path_;
+    ap1_msgs::msg::VehicleSpeedStamped vehicle_speed_;
+    ap1_msgs::msg::TurnAngleStamped vehicle_turn_angle;
 
-        #ifdef AP1_CONTROL_SUPPORT_TWIST
-        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
-        rclcpp::TimerBase::SharedPtr twist_timer_;
-        #endif
-    public:
-        ControlNode() : Node("control_node") {
-            // # All inputs shabooya
-            // - SPEED PROFILE
-            speed_profile_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
-                "speed_profile", 10, std::bind(&ControlNode::on_speed_profile, this, std::placeholders::_1)
-            );
-            // - TARGET PATH
-            target_path_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
-                "target_path", 10, std::bind(&ControlNode::on_path, this, std::placeholders::_1)
-            );
-        
-            // # Publishers
-            // - TURNING ANGLE
-            turning_angle_pub_ = this->create_publisher<std_msgs::msg::Float32>("turning_angle", 10);
-            // - MOTOR POWER
-            motor_power_pub_ = this->create_publisher<std_msgs::msg::Float32>("motor_power", 10);
-            
-            #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
-            ackermann_pub_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
-            "/ap1/control/ackermann_cmd", 10
-            );
+    // Subs
+    rclcpp::Subscription<ap1_msgs::msg::TargetPathStamped>::SharedPtr target_path_sub_;
+    rclcpp::Subscription<ap1_msgs::msg::SpeedProfileStamped>::SharedPtr speed_profile_sub_;
+    rclcpp::Subscription<ap1_msgs::msg::VehicleSpeedStamped>::SharedPtr vehicle_speed_sub_;
+    rclcpp::Subscription<ap1_msgs::msg::TurnAngleStamped>::SharedPtr vehicle_turn_angle_sub_;
 
-            timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(500),
-            [this]() { publish_outputs(1.0, 0.1); }
-            );
-            #endif
+    // Pubs
+    rclcpp::Publisher<ap1_msgs::msg::TurnAngleStamped>::SharedPtr turning_angle_pub_;
+    rclcpp::Publisher<ap1_msgs::msg::MotorPowerStamped>::SharedPtr motor_power_pub_; // between -1 and 1? probably
+    
+    #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
+    rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_pub_;
+    // timer for publishing ackermann outputs
+    rclcpp::TimerBase::SharedPtr timer_; 
+    #endif
 
-            #ifdef AP1_CONTROL_SUPPORT_TWIST
-            twist_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/ap1/control/twist_cmd", 10);
-            twist_timer_ = this->create_wall_timer(
-                std::chrono::milliseconds(500),
-                [this]() {
-                    geometry_msgs::msg::Twist msg;
-                    msg.linear.x = 1.0;   // example forward velocity
-                    msg.angular.z = 0.5;  // example turning rate
-                    twist_pub_->publish(msg);
-                });
-            #endif
+    #ifdef AP1_CONTROL_SUPPORT_TWIST
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
+    rclcpp::TimerBase::SharedPtr twist_timer_;
+    #endif
 
-        }
+    // Methods
+    void on_speed_profile(const ap1_msgs::msg::SpeedProfileStamped speed_profile);
+    void on_path(const ap1_msgs::msg::TargetPathStamped target_path);
+    void on_speed(const ap1_msgs::msg::VehicleSpeedStamped speed);
+    void on_turn_angle(const ap1_msgs::msg::TurnAngleStamped turn_angle);
+    void control_loop_callback();
 
-        void publish_outputs(float motor_output, float turning_output) {
-            #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
-            ackermann_msgs::msg::AckermannDriveStamped msg;
-            msg.header.stamp = this->now();
-            msg.drive.speed = motor_output;
-            msg.drive.steering_angle = turning_output;
-            ackermann_pub_->publish(msg);
-            #endif
-
-            std_msgs::msg::Float32 motor_msg;
-            motor_msg.data = motor_output;
-            motor_power_pub_->publish(motor_msg);
-
-            std_msgs::msg::Float32 turning_msg;
-            turning_msg.data = turning_output;
-            turning_angle_pub_->publish(turning_msg);
-        }
-
-    };
-}
+  public:
+    ControlNode(const std::string& cfg_path, float rate_hz = 60);
+};
+} // namespace ap1::control
 
 #endif // AP1_CONTROL_NODE_HPP
