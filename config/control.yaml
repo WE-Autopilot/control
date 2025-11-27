@@ -1,0 +1,6 @@
+control_node:
+  ros__parameters:
+    rate_hz: 20
+    turn_kp: 0.5
+    turn_ki: 0.1
+    turn_kd: 0.05
