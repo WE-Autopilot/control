@@ -10,19 +10,10 @@ int main(int argc, char** argv)
     // init ros & ros logger
     rclcpp::init(argc, argv);
 
-    // get control node config path from args
-    std::string config_path = "";
-    if (argc > 1)
-    {
-        config_path = argv[1];
-    }
-    else
-    {
-        RCLCPP_ERROR(rclcpp::get_logger(LOGGER_NAME), "Usage: control_node <config.csv>");
-        return 1;
-    }
-
+    // Create node
     auto node = std::make_shared<ap1::control::ControlNode>(config_path);
+
+    // Spin node
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;

@@ -18,10 +18,11 @@ class AckermannController
   public:
     struct Config
     {
-        double L;             // wheelbase in meters
-        double a_max;         // max longitudinal accleration (ms^-2)
-        double delta_max;     // max steering angle
-        double throttle_gain; // scales accel to throttle [-1, 1]
+        // Added default values for safety if config file fails to load
+        double L = 0.33;             // wheelbase in meters
+        double a_max = 2.0;          // max longitudinal accleration (ms^-2)
+        double delta_max = 0.5;      // max steering angle (~28 deg)
+        double throttle_gain = 1.0;  // scales accel to throttle [-1, 1]
     };
 
     explicit AckermannController(const Config &cfg);
