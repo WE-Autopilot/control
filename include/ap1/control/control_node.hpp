@@ -20,6 +20,14 @@
 #include "ap1/control/ackermann_controller.hpp"
 #include "ap1/control/icontroller.hpp"
 
+#ifdef AP1_CONTROL_SUPPORT_TWIST
+#include "geometry_msgs/msg/twist.hpp"
+#endif
+
+#ifdef AP1_CONTROL_SUPPORT_ACKERMANN
+#include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
+#endif
+
 namespace ap1::control
 {
 class ControlNode : public rclcpp::Node
@@ -52,6 +60,14 @@ class ControlNode : public rclcpp::Node
     // Pubs
     rclcpp::Publisher<ap1_msgs::msg::TurnAngleStamped>::SharedPtr turning_angle_pub_;
     rclcpp::Publisher<ap1_msgs::msg::MotorPowerStamped>::SharedPtr motor_power_pub_; // between -1 and 1? probably
+    
+    #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
+    rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_pub_;
+    #endif
+
+    #ifdef AP1_CONTROL_SUPPORT_TWIST
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
+    #endif 
 
     // Methods
     void on_speed_profile(const ap1_msgs::msg::SpeedProfileStamped speed_profile);

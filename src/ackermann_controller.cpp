@@ -16,7 +16,7 @@
 #include "vectors.hpp"
 #include "ap1/control/ackermann_controller.hpp"
 
-#define EPSILON 1e-3
+const float EPSILON = 1e-3;
 
 namespace ap1::control
 {

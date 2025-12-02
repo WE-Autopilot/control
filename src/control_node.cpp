@@ -9,16 +9,27 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+// messages
 #include "ap1_msgs/msg/motor_power_stamped.hpp"
 #include "ap1_msgs/msg/speed_profile_stamped.hpp"
 #include "ap1_msgs/msg/target_path_stamped.hpp"
 #include "ap1_msgs/msg/turn_angle_stamped.hpp"
 #include "ap1_msgs/msg/vehicle_speed_stamped.hpp"
 
+// control
 #include "ap1/control/control_node.hpp"
 #include "ap1/control/icontroller.hpp"
 #include "ap1/control/pd_controller.hpp"
+#include "ap1/control/ackermann_controller.hpp"
+#include "ap1/control/icontroller.hpp"
 #include "vectors.hpp"
+
+// special types
+#ifdef AP1_CONTROL_SUPPORT_TWIST
+#include "geometry_msgs/msg/twist.hpp"
+#elif defined(AP1_CONTROL_SUPPORT_ACKERMANN)
+#include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
+#endif
 
 using namespace ap1_msgs::msg;
 using namespace ap1::control;
@@ -76,6 +87,23 @@ void ControlNode::control_loop_callback()
     // log
     RCLCPP_INFO(this->get_logger(), "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
 
+#ifdef AP1_CONTROL_SUPPORT_ACKERMANN
+    // only send out an ackermann message
+    ackermann_msgs::msg::AckermannDriveStamped msg;
+    msg.header.stamp = this->now();
+    msg.drive.speed = speed_profile_.speeds.at(0);
+    msg.drive.steering_angle = cmd.steering; // rads
+    ackermann_pub_->publish(msg);
+#elif defined(AP1_CONTROL_SUPPORT_TWIST)
+    // only send out a twist message
+    geometry_msgs::msg::Twist msg;
+    msg.linear.x = speed_profile_.speeds.at(0);
+    // msg.angular.z = cmd.steering; STILL NEEDS TO BE IMPLEMENTED. THIS IS TARGET ANGLE NOT RAD/S
+    // ANGULAR CONTROL.
+    throw "Not yet implemented";
+    twist_pub_->publish(msg);
+#else
+    // send out both a TurnAngleStamped and MotorPowerStamped message
     // pack the turn angle into a message
     TurnAngleStamped turn_msg;
     turn_msg.header.stamp = this->now();
@@ -87,11 +115,11 @@ void ControlNode::control_loop_callback()
     pwr_msg.header.stamp = this->now();
     pwr_msg.header.frame_id = "base_link";
     pwr_msg.power = cmd.throttle; // [-1, 1]
-    // pwr_msg.power = 1.0f;
 
     // send both messages out
     turning_angle_pub_->publish(turn_msg);
     motor_power_pub_->publish(pwr_msg);
+#endif
 }
 
 ControlNode::ControlNode(const std::string& cfg_path, float rate_hz)
@@ -115,6 +143,14 @@ ControlNode::ControlNode(const std::string& cfg_path, float rate_hz)
     // Pubs
     turning_angle_pub_ = this->create_publisher<TurnAngleStamped>("ap1/control/turn_angle", 10);
     motor_power_pub_ = this->create_publisher<MotorPowerStamped>("ap1/control/motor_power", 10);
+    #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
+    ackermann_pub_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
+        "/ap1/control/ackermann_cmd", 10);
+    #endif
+
+    #ifdef AP1_CONTROL_SUPPORT_TWIST
+    twist_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/ap1/control/twist_cmd", 10);
+    #endif
 
     // Create Control Loop
     timer_ = this->create_wall_timer(std::chrono::duration<double>(1.0 / rate_hz),

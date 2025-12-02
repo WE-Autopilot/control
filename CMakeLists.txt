@@ -5,6 +5,17 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(AP1_CONTROL_SUPPORT_ACKERMANN "Enable ackermann command output" ON)
+option(AP1_CONTROL_SUPPORT_TWIST "Enable Twist publisher" OFF)
+
+if(AP1_CONTROL_SUPPORT_ACKERMANN)
+  add_compile_definitions(AP1_CONTROL_SUPPORT_ACKERMANN)
+endif()
+
+if(AP1_CONTROL_SUPPORT_TWIST)
+  add_compile_definitions(AP1_CONTROL_SUPPORT_TWIST)
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -14,6 +25,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(ackermann_msgs REQUIRED)
 find_package(ap1_msgs REQUIRED)
 
 add_executable(control_node 
@@ -25,12 +37,19 @@ target_include_directories(control_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
+
+target_compile_features(control_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 ament_target_dependencies(
+  control_node
+  rclcpp
+  std_msgs
+  geometry_msgs
+  ackermann_msgs
   control_node 
-  "rclcpp"
-  "std_msgs"
-  "geometry_msgs"
-  "ap1_msgs"
+  rclcpp
+  std_msgs
+  geometry_msgs
+  ap1_msgs
 )
 
 install(TARGETS 
