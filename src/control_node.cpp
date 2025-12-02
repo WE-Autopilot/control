@@ -147,30 +147,18 @@ ControlNode::ControlNode(const std::string& cfg_path, float rate_hz)
     // Pubs
     turning_angle_pub_ = this->create_publisher<TurnAngleStamped>("ap1/control/turn_angle", 10);
     motor_power_pub_ = this->create_publisher<MotorPowerStamped>("ap1/control/motor_power", 10);
+    #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
+    ackermann_pub_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
+        "/ap1/control/ackermann_cmd", 10);
+    #endif
+
+    #ifdef AP1_CONTROL_SUPPORT_TWIST
+    twist_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/ap1/control/twist_cmd", 10);
+    #endif
 
     // Create Control Loop
     timer_ = this->create_wall_timer(std::chrono::duration<double>(1.0 / rate_hz),
                                      std::bind(&ControlNode::control_loop_callback, this));
-
-#ifdef AP1_CONTROL_SUPPORT_ACKERMANN
-    ackermann_pub_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
-        "/ap1/control/ackermann_cmd", 10);
-
-//    timer_ = this->create_wall_timer(std::chrono::milliseconds(500),
-//                                     [this]() { publish_outputs(1.0, 0.1); });
-#endif
-
-#ifdef AP1_CONTROL_SUPPORT_TWIST
-    twist_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/ap1/control/twist_cmd", 10);
-    /*twist_timer_ = this->create_wall_timer(std::chrono::milliseconds(500),
-                                           [this]()
-                                           {
-                                               geometry_msgs::msg::Twist msg;
-                                               msg.linear.x = 1.0;  // example forward velocity
-                                               msg.angular.z = 0.5; // example turning rate
-                                               twist_pub_->publish(msg);
-                                           });*/
-#endif
 
     // Log completion
     RCLCPP_INFO(this->get_logger(), "Control Node initialized");

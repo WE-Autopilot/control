@@ -63,14 +63,11 @@ class ControlNode : public rclcpp::Node
     
     #ifdef AP1_CONTROL_SUPPORT_ACKERMANN
     rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_pub_;
-    // timer for publishing ackermann outputs
-    rclcpp::TimerBase::SharedPtr timer_; 
     #endif
 
     #ifdef AP1_CONTROL_SUPPORT_TWIST
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
-    rclcpp::TimerBase::SharedPtr twist_timer_;
-    #endif
+    #endif 
 
     // Methods
     void on_speed_profile(const ap1_msgs::msg::SpeedProfileStamped speed_profile);
