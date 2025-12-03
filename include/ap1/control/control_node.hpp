@@ -11,11 +11,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "ap1_msgs/msg/motor_power_stamped.hpp"
 #include "ap1_msgs/msg/speed_profile_stamped.hpp"
 #include "ap1_msgs/msg/target_path_stamped.hpp"
-#include "ap1_msgs/msg/turn_angle_stamped.hpp"
-#include "ap1_msgs/msg/vehicle_speed_stamped.hpp"
 
 #include "ap1/control/ackermann_controller.hpp"
 #include "ap1/control/icontroller.hpp"
