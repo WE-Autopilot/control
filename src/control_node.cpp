@@ -6,6 +6,7 @@
 #include <format>
 #include <iostream>
 #include <string>
+#include <memory>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -45,6 +46,12 @@ void ControlNode::on_turn_angle(const TurnAngleStamped turn_angle)
 
 void ControlNode::control_loop_callback()
 {
+    // Safety check if controller is initialized 
+    if (!ackermann_controller_) {
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Controller not initialized!");
+        return;
+    }
+
     // the car's current velocity. we only support moving forward atp
     const vec3f velocity(this->vehicle_speed_.speed, 0, 0); // +x is always forward on the car
 
@@ -71,7 +78,7 @@ void ControlNode::control_loop_callback()
     RCLCPP_INFO(this->get_logger(), "ACC: %.2f, %.2f, %.2f", acc.x, acc.y, acc.z);
 
     // compute acc and throttle using ackermann controller
-    AckermannController::Command cmd = ackermann_controller_.compute_command(acc, velocity);
+    AckermannController::Command cmd = ackermann_controller_->compute_command(acc, velocity);
 
     // log
     RCLCPP_INFO(this->get_logger(), "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
@@ -94,25 +101,47 @@ void ControlNode::control_loop_callback()
     motor_power_pub_->publish(pwr_msg);
 }
 
-ControlNode::ControlNode(const std::string& cfg_path, float rate_hz)
-    : Node("control_node"), rate_hz_(rate_hz), controller_(new PDController()),
-      ackermann_controller_(AckermannController(AckermannController::load_config(cfg_path)))
+ControlNode::ControlNode(float rate_hz): 
+    Node("control_node"), 
+    rate_hz_(rate_hz), 
+    controller_(new PDController())
 {
-    // Subs
-    speed_profile_sub_ = this->create_subscription<SpeedProfileStamped>(
-        "ap1/planning/speed_profile", 10,
-        std::bind(&ControlNode::on_speed_profile, this, std::placeholders::_1));
-    target_path_sub_ = this->create_subscription<TargetPathStamped>(
-        "ap1/planning/target_path", 10,
-        std::bind(&ControlNode::on_path, this, std::placeholders::_1));
-    vehicle_speed_sub_ = this->create_subscription<VehicleSpeedStamped>(
-        "ap1/actuation/speed_actual", 10,
-        std::bind(&ControlNode::on_speed, this, std::placeholders::_1));
-    vehicle_turn_angle_sub_ = this->create_subscription<TurnAngleStamped>(
-        "ap1/actuation/turn_angle_actual", 10,
-        std::bind(&ControlNode::on_turn_angle, this, std::placeholders::_1));
+    // Declare and get parameter for config path
+    this->declare_parameter<std::string>("config_path", "config.csv");
+    std::string cfg_path = this->get_parameter("config_path").as_string();
 
-    // Pubs
+    // Return either file contents OR default values.
+    AckermannController::Config cfg = AckermannController::load_config(cfg_path);
+    
+    // Initialize Controller
+    ackermann_controller_ = std::make_unique<AckermannController>(cfg);
+
+    // Topic Subscriptions
+    speed_profile_sub_ = this->create_subscription<SpeedProfileStamped>(
+        "ap1/planning/speed_profile", 
+        10,
+        std::bind(&ControlNode::on_speed_profile, this, std::placeholders::_1)
+    );
+
+    target_path_sub_ = this->create_subscription<TargetPathStamped>(
+        "ap1/planning/target_path", 
+        10,
+        std::bind(&ControlNode::on_path, this, std::placeholders::_1)
+    );
+
+    vehicle_speed_sub_ = this->create_subscription<VehicleSpeedStamped>(
+        "ap1/actuation/speed_actual", 
+        10,
+        std::bind(&ControlNode::on_speed, this, std::placeholders::_1)
+    );
+
+    vehicle_turn_angle_sub_ = this->create_subscription<TurnAngleStamped>(
+        "ap1/actuation/turn_angle_actual", 
+        10,
+        std::bind(&ControlNode::on_turn_angle, this, std::placeholders::_1)
+    );
+
+    // Topic Publications
     turning_angle_pub_ = this->create_publisher<TurnAngleStamped>("ap1/control/turn_angle", 10);
     motor_power_pub_ = this->create_publisher<MotorPowerStamped>("ap1/control/motor_power", 10);
 

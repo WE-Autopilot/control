@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <string>
+#include <memory>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -33,7 +34,8 @@ class ControlNode : public rclcpp::Node
 
     // Controller
     std::unique_ptr<IController> controller_;
-    AckermannController ackermann_controller_;
+    // Unique_ptr used for delayd initialization. Allows construction after reading ros params
+    std::unique_ptr<AckermannController> ackermann_controller_;
 
     // Memory
     // half these types are very unnecessary, we should just have stampedfloat or
@@ -61,7 +63,7 @@ class ControlNode : public rclcpp::Node
     void control_loop_callback();
 
   public:
-    ControlNode(const std::string& cfg_path, float rate_hz = 60);
+    ControlNode(float rate_hz = 60);
 };
 } // namespace ap1::control
 

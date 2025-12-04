@@ -44,7 +44,7 @@ std::unordered_map<std::string, double> load_csv_config(const std::string& path)
             }
             catch (const std::exception& e)
             {
-                throw std::runtime_error("Invalid vlaue for key " + key + ": " + value_str);
+                throw std::runtime_error("Invalid value for key " + key + ": " + value_str);
             }
         }
     }
@@ -78,7 +78,9 @@ AckermannController::Command AckermannController::compute_command(const vec3f& a
     double delta = std::atan(cfg_.L * kappa);
     delta = std::clamp(delta, -cfg_.delta_max, cfg_.delta_max);
 
-    double throttle = std::clamp(a_long / cfg_.a_max * cfg_.throttle_gain, -1.0, 1.0);
+    // Safety: ensure a_max is not zero to avoid div-by-zero
+    double safe_a_max = (cfg_.a_max > EPSILON) ? cfg_.a_max : 1.0;
+    double throttle = std::clamp(a_long / safe_a_max * cfg_.throttle_gain, -1.0, 1.0);
 
     cmd.throttle = throttle;
     cmd.steering = delta;
@@ -88,19 +90,30 @@ AckermannController::Command AckermannController::compute_command(const vec3f& a
 
 AckermannController::Config AckermannController::load_config(const std::string& path)
 {
-    Config cfg;
+    Config cfg; 
 
-    auto map = load_csv_config(path);
+    // Try to load the CSV
+    try {
+        auto map = load_csv_config(path);
 
-    if (map.count("wheelbase"))
-        cfg.L = map["wheelbase"];
-    if (map.count("a_max"))
-        cfg.a_max = map["a_max"];
-    if (map.count("delta_max"))
-        cfg.delta_max = map["delta_max"];
-    if (map.count("throttle_gain"))
-        cfg.throttle_gain = map["throttle_gain"];
+        // If load succeeds, overwrite the defaults
+        if (map.count("wheelbase"))
+            cfg.L = map["wheelbase"];
+        if (map.count("a_max"))
+            cfg.a_max = map["a_max"];
+        if (map.count("delta_max"))
+            cfg.delta_max = map["delta_max"];
+        if (map.count("throttle_gain"))
+            cfg.throttle_gain = map["throttle_gain"];
+    }
+    catch (const std::exception& e) {
+        // If load fails, catch the error here. 
+        // Print a warning to stderr, but allow the program to continue using defaults.
+        std::cerr << "[AckermannController] Warning: " << e.what() 
+                  << ". Using default configuration." << std::endl;
+    }
 
+    // 4. Return the config (either loaded from file or defaults)
     return cfg;
 }
 } // namespace ap1::control
