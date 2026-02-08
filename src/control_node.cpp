@@ -66,13 +66,17 @@ void ControlNode::control_loop_callback()
         velocity, vec2f(next_waypoint.x, next_waypoint.y), speed_profile_.speeds.at(0));
 
     // log
-    RCLCPP_INFO(this->get_logger(), "ACC: %.2f, %.2f, %.2f", acc.x, acc.y, acc.z);
+    std::string s = "ACC: " + std::to_string(acc.x) + ", " + std::to_string(acc.y) + ", " +
+                    std::to_string(acc.z);
+    RCLCPP_INFO(this->get_logger(), s.c_str());
 
     // compute acc and throttle using ackermann controller
     AckermannController::Command cmd = ackermann_controller_.compute_command(acc, velocity);
 
     // log
-    RCLCPP_INFO(this->get_logger(), "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
+    s = "CMD: {throttle:" + std::to_string(cmd.throttle) +
+        ", steering:" + std::to_string(cmd.steering) + "}";
+    RCLCPP_INFO(this->get_logger(), s.c_str());
 
     // pack the turn angle into a message
     FloatStamped turn_msg;
