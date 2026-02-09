@@ -13,6 +13,8 @@
 
 #include "ap1_msgs/msg/speed_profile_stamped.hpp"
 #include "ap1_msgs/msg/target_path_stamped.hpp"
+#include "ap1_msgs/msg/turn_angle_stamped.hpp"
+#include "ap1_msgs/msg/vehicle_speed_stamped.hpp"
 #include "ap1_msgs/msg/float_stamped.hpp"
 
 #include "ap1/control/ackermann_controller.hpp"
@@ -34,8 +36,6 @@ class ControlNode : public rclcpp::Node
     AckermannController ackermann_controller_;
 
     // Memory
-    // half these types are very unnecessary, we should just have stampedfloat or
-    // stamped double or something
     ap1_msgs::msg::SpeedProfileStamped speed_profile_;
     ap1_msgs::msg::TargetPathStamped target_path_;
     ap1_msgs::msg::FloatStamped vehicle_speed_;

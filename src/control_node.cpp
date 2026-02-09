@@ -11,6 +11,8 @@
 
 #include "ap1_msgs/msg/speed_profile_stamped.hpp"
 #include "ap1_msgs/msg/target_path_stamped.hpp"
+#include "ap1_msgs/msg/turn_angle_stamped.hpp"
+#include "ap1_msgs/msg/vehicle_speed_stamped.hpp"
 #include "ap1_msgs/msg/float_stamped.hpp"
 
 #include "ap1/control/control_node.hpp"
@@ -31,20 +33,20 @@ void ControlNode::on_path(const TargetPathStamped target_path)
     target_path_ = target_path;
 }
 
-void ControlNode::on_speed(const FloatStamped & msg)
+void ControlNode::on_speed(const FloatStamped speed)
 {
-    vehicle_speed_ = msg.value;
+    vehicle_speed_ = speed;
 }
 
-void ControlNode::on_turn_angle(const FloatStamped & msg)
+void ControlNode::on_turn_angle(const FloatStamped turn_angle)
 {
-    vehicle_turn_angle = msg.value;
+    vehicle_turn_angle = turn_angle;
 }
 
 void ControlNode::control_loop_callback()
 {
     // the car's current velocity. we only support moving forward atp
-    const vec3f velocity(this->vehicle_speed_, 0, 0); // +x is always forward on the car
+    const vec3f velocity(this->vehicle_speed_.value, 0, 0); // +x is always forward on the car
 
     const bool PATH_IS_STALE = false, SPEED_PROFILE_IS_STALE = false; // TEMP
 
@@ -66,17 +68,13 @@ void ControlNode::control_loop_callback()
         velocity, vec2f(next_waypoint.x, next_waypoint.y), speed_profile_.speeds.at(0));
 
     // log
-    std::string s = "ACC: " + std::to_string(acc.x) + ", " + std::to_string(acc.y) + ", " +
-                    std::to_string(acc.z);
-    RCLCPP_INFO(this->get_logger(), s.c_str());
+    // RCLCPP_INFO(this->get_logger(), "ACC: %.2f, %.2f, %.2f", acc.x, acc.y, acc.z);
 
     // compute acc and throttle using ackermann controller
     AckermannController::Command cmd = ackermann_controller_.compute_command(acc, velocity);
 
     // log
-    s = "CMD: {throttle:" + std::to_string(cmd.throttle) +
-        ", steering:" + std::to_string(cmd.steering) + "}";
-    RCLCPP_INFO(this->get_logger(), s.c_str());
+    // RCLCPP_INFO(this->get_logger(), "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
 
     // pack the turn angle into a message
     FloatStamped turn_msg;
@@ -89,7 +87,6 @@ void ControlNode::control_loop_callback()
     pwr_msg.header.stamp = this->now();
     pwr_msg.header.frame_id = "base_link";
     pwr_msg.value = cmd.throttle; // [-1, 1]
-    // pwr_msg.power = 1.0f;
 
     // send both messages out
     turning_angle_pub_->publish(turn_msg);
