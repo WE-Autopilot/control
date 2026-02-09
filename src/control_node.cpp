@@ -14,6 +14,7 @@
 #include "ap1_msgs/msg/target_path_stamped.hpp"
 #include "ap1_msgs/msg/turn_angle_stamped.hpp"
 #include "ap1_msgs/msg/vehicle_speed_stamped.hpp"
+#include "ap1_msgs/msg/float_stamped.hpp"
 
 #include "ap1/control/control_node.hpp"
 #include "ap1/control/icontroller.hpp"
@@ -25,6 +26,7 @@ using namespace ap1::control;
 
 void ControlNode::on_speed_profile(const SpeedProfileStamped speed_profile)
 {
+
     speed_profile_ = speed_profile;
 }
 
@@ -33,12 +35,12 @@ void ControlNode::on_path(const TargetPathStamped target_path)
     target_path_ = target_path;
 }
 
-void ControlNode::on_speed(const VehicleSpeedStamped speed)
+void ControlNode::on_speed(const FloatStamped speed)
 {
     vehicle_speed_ = speed;
 }
 
-void ControlNode::on_turn_angle(const TurnAngleStamped turn_angle)
+void ControlNode::on_turn_angle(const FloatStamped turn_angle)
 {
     vehicle_turn_angle = turn_angle;
 }
@@ -46,7 +48,7 @@ void ControlNode::on_turn_angle(const TurnAngleStamped turn_angle)
 void ControlNode::control_loop_callback()
 {
     // the car's current velocity. we only support moving forward atp
-    const vec3f velocity(this->vehicle_speed_.speed, 0, 0); // +x is always forward on the car
+    const vec3f velocity(this->vehicle_speed_.value, 0, 0); // +x is always forward on the car
 
     const bool PATH_IS_STALE = false, SPEED_PROFILE_IS_STALE = false; // TEMP
 
@@ -68,26 +70,25 @@ void ControlNode::control_loop_callback()
         velocity, vec2f(next_waypoint.x, next_waypoint.y), speed_profile_.speeds.at(0));
 
     // log
-    RCLCPP_INFO(this->get_logger(), "ACC: %.2f, %.2f, %.2f", acc.x, acc.y, acc.z);
+    // RCLCPP_INFO(this->get_logger(), "ACC: %.2f, %.2f, %.2f", acc.x, acc.y, acc.z);
 
     // compute acc and throttle using ackermann controller
     AckermannController::Command cmd = ackermann_controller_.compute_command(acc, velocity);
 
     // log
-    RCLCPP_INFO(this->get_logger(), "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
+    // RCLCPP_INFO(this->get_logger(), "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
 
     // pack the turn angle into a message
-    TurnAngleStamped turn_msg;
+    FloatStamped turn_msg;
     turn_msg.header.stamp = this->now();
     turn_msg.header.frame_id = "base_link";
-    turn_msg.angle = cmd.steering; // rads
+    turn_msg.value = cmd.steering; // rads
 
     // pack the power into a message
-    MotorPowerStamped pwr_msg;
+    FloatStamped pwr_msg;
     pwr_msg.header.stamp = this->now();
     pwr_msg.header.frame_id = "base_link";
-    pwr_msg.power = cmd.throttle; // [-1, 1]
-    // pwr_msg.power = 1.0f;
+    pwr_msg.value = cmd.throttle; // [-1, 1]
 
     // send both messages out
     turning_angle_pub_->publish(turn_msg);
@@ -105,16 +106,16 @@ ControlNode::ControlNode(const std::string& cfg_path, float rate_hz)
     target_path_sub_ = this->create_subscription<TargetPathStamped>(
         "ap1/planning/target_path", 10,
         std::bind(&ControlNode::on_path, this, std::placeholders::_1));
-    vehicle_speed_sub_ = this->create_subscription<VehicleSpeedStamped>(
+    vehicle_speed_sub_ = this->create_subscription<FloatStamped>(
         "ap1/actuation/speed_actual", 10,
         std::bind(&ControlNode::on_speed, this, std::placeholders::_1));
-    vehicle_turn_angle_sub_ = this->create_subscription<TurnAngleStamped>(
+    vehicle_turn_angle_sub_ = this->create_subscription<FloatStamped>(
         "ap1/actuation/turn_angle_actual", 10,
         std::bind(&ControlNode::on_turn_angle, this, std::placeholders::_1));
 
     // Pubs
-    turning_angle_pub_ = this->create_publisher<TurnAngleStamped>("ap1/control/turn_angle", 10);
-    motor_power_pub_ = this->create_publisher<MotorPowerStamped>("ap1/control/motor_power", 10);
+    turning_angle_pub_ = this->create_publisher<FloatStamped>("ap1/control/turn_angle", 10);
+    motor_power_pub_ = this->create_publisher<FloatStamped>("ap1/control/motor_power", 10);
 
     // Create Control Loop
     timer_ = this->create_wall_timer(std::chrono::duration<double>(1.0 / rate_hz),

@@ -38,6 +38,11 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# copy the config dir over as well
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   # no auto linting for now
 endif()
