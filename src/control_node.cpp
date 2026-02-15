@@ -71,7 +71,7 @@ void ControlNode::control_loop_callback()
     // compute acc and throttle using ackermann controller
     AckermannController::Command cmd = ackermann_controller_.compute_command(acc, velocity);
 
-    // log
+    // DEBUG
     // RCLCPP_INFO(this->get_logger(), "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
 
     // pack the turn angle into a message
@@ -97,21 +97,21 @@ ControlNode::ControlNode(const std::string& cfg_path, float rate_hz)
 {
     // Subs
     speed_profile_sub_ = this->create_subscription<SpeedProfileStamped>(
-        "ap1/planning/speed_profile", 10,
+        "/ap1/planning/speed_profile", 1,
         std::bind(&ControlNode::on_speed_profile, this, std::placeholders::_1));
     target_path_sub_ = this->create_subscription<TargetPathStamped>(
-        "ap1/planning/target_path", 10,
+        "/ap1/planning/target_path", 1,
         std::bind(&ControlNode::on_path, this, std::placeholders::_1));
     vehicle_speed_sub_ = this->create_subscription<FloatStamped>(
-        "ap1/actuation/speed_actual", 10,
+        "/ap1/actuation/speed", 1,
         std::bind(&ControlNode::on_speed, this, std::placeholders::_1));
     vehicle_turn_angle_sub_ = this->create_subscription<FloatStamped>(
-        "ap1/actuation/turn_angle_actual", 10,
+        "/ap1/actuation/turn_angle", 1,
         std::bind(&ControlNode::on_turn_angle, this, std::placeholders::_1));
 
     // Pubs
-    turning_angle_pub_ = this->create_publisher<FloatStamped>("ap1/control/turn_angle", 10);
-    motor_power_pub_ = this->create_publisher<FloatStamped>("ap1/control/motor_power", 10);
+    turning_angle_pub_ = this->create_publisher<FloatStamped>("/ap1/control/turn_angle", 1);
+    motor_power_pub_ = this->create_publisher<FloatStamped>("/ap1/control/motor_power", 1);
 
     // Create Control Loop
     timer_ = this->create_wall_timer(std::chrono::duration<double>(1.0 / rate_hz),
