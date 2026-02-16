@@ -34,10 +34,10 @@ class ControlNode : public rclcpp::Node
     AckermannController ackermann_controller_;
 
     // Memory
-    ap1_msgs::msg::SpeedProfileStamped speed_profile_;
-    ap1_msgs::msg::TargetPathStamped target_path_;
-    ap1_msgs::msg::FloatStamped vehicle_speed_;
-    ap1_msgs::msg::FloatStamped vehicle_turn_angle;
+    ap1_msgs::msg::SpeedProfileStamped::SharedPtr speed_profile_;
+    ap1_msgs::msg::TargetPathStamped::SharedPtr target_path_;
+    ap1_msgs::msg::FloatStamped::SharedPtr vehicle_speed_;
+    ap1_msgs::msg::FloatStamped::SharedPtr vehicle_turn_angle;
 
     // Subs
     rclcpp::Subscription<ap1_msgs::msg::TargetPathStamped>::SharedPtr target_path_sub_;
@@ -50,10 +50,10 @@ class ControlNode : public rclcpp::Node
     rclcpp::Publisher<ap1_msgs::msg::FloatStamped>::SharedPtr motor_power_pub_; // between -1 and 1? probably
 
     // Methods
-    void on_speed_profile(const ap1_msgs::msg::SpeedProfileStamped speed_profile);
-    void on_path(const ap1_msgs::msg::TargetPathStamped target_path);
-    void on_speed(const ap1_msgs::msg::FloatStamped speed);
-    void on_turn_angle(const ap1_msgs::msg::FloatStamped turn_angle);
+    void on_speed_profile(const ap1_msgs::msg::SpeedProfileStamped::SharedPtr speed_profile);
+    void on_path(const ap1_msgs::msg::TargetPathStamped::SharedPtr target_path);
+    void on_speed(const ap1_msgs::msg::FloatStamped::SharedPtr speed);
+    void on_turn_angle(const ap1_msgs::msg::FloatStamped::SharedPtr turn_angle);
     void control_loop_callback();
 
   public:

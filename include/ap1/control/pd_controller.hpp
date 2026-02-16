@@ -9,15 +9,51 @@
 
 #include <cmath>
 #include <iostream>
-#include <stdexcept>
-#include <vector>
-
-#include "geometry_msgs/msg/point.hpp"
+#include <sys/types.h>
 
 #include "ap1/control/icontroller.hpp"
+#include "ap1_msgs/msg/target_path_stamped.hpp"
 #include "vectors.hpp"
 
 #define EPSILON 1e-6
+#define MAX_WAYPOINT_SEARCH 5 // how far into the planned path to search for a path far from the current position
+
+using ap1_msgs::msg::TargetPathStamped;
+
+/**
+ * @brief Figure's out the first, next up target position.
+ * @return vec2f Returns a vec containing the first waypoint that is further than EPSILON from the origin.
+ */
+inline vec2f get_target_position(const TargetPathStamped::ConstSharedPtr path) {
+    uint wpt_idx = 0;
+
+    while (wpt_idx < MAX_WAYPOINT_SEARCH) {
+        const vec2f next{(float) path->path[wpt_idx].x, (float) path->path[wpt_idx].y};
+        const vec2f origin{0, 0};
+
+        // if the waypoint and the origin are far enough apart
+        if (distance(next, origin) > EPSILON) {
+            // return it
+            return next;
+        }
+
+        // otherwise increment and try again
+        wpt_idx++;
+    }
+
+    // OPERATION FAILED!
+    // at this point in development I'm just trying to get it working
+    // this leaves me with 2 very bad options
+    // option 1: I return 0 here and let jesus take the wheel
+    // option 2: I can throw a runtime error and just take all of control down
+    // both options are kind of shit I can't lie
+    // really this should propagate upwards to some kind of system that takes care of it, decelerating the car or keeping it stopped depending
+    // on if we're starting up or moving or whatever
+    // but considering we don't have that I'm just going to take option 1.
+    return {0, 0};
+    // option 2 for fun:
+    // throw std::runtime_error("MAX_WAYPOINT_SEARCH exceeded! Couldn't find a waypoint far enough."); 
+}
 
 namespace ap1::control
 {
@@ -33,10 +69,19 @@ class PDController : public IController
 
     // Computes acceleration based on current velocity, target position, and target speed. Returns
     // acceleration vector.
-    virtual vec3f compute_acceleration(const vec3f& vel,
-                                       const vec2f& target_pos,
-                                       const float target_speed) override
-    {
+    virtual vec3f compute_acceleration(
+        const vec3f& vel,
+        const TargetPathStamped::ConstSharedPtr path,
+        const float target_speed
+    ) override {
+        if (!path) {
+            printf("Unc is null twin");
+            return {0, 0, 0};
+        }
+
+        const auto target_pos = get_target_position(path);
+
+        // Get the very next target position
         // Convert target position to vec3f and calculate distance
         const float distance = target_pos.length();
 

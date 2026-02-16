@@ -1,0 +1,15 @@
+# CHANGELOG
+
+## v0.1 | Initial dev
+
+### v0.1.0 - Unknown
+- [x] Control laterally (no rev, no brake)
+
+### v0.1.1 - WIP
+- [x] Fix control issue. Does not accelerate in 3D.
+- [ ] Add braking
+- [ ] Add reversing
+- [ ] Add turn output
+
+### v0.1.2 - WIP
+- [ ] Add MPC

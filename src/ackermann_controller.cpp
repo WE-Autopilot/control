@@ -54,23 +54,15 @@ std::unordered_map<std::string, double> load_csv_config(const std::string& path)
 
 AckermannController::AckermannController(const Config& cfg) : cfg_(cfg)
 {
-    printf("Created Ackermann Controller with config: a_max=%f, delta_max=%f, L=%f, "
-           "throttle_gain=%f\n",
-           cfg_.a_max, cfg_.delta_max, cfg_.L, cfg_.throttle_gain);
+    printf("Created Ackermann Controller with config: a_max=%f, delta_max=%f, L=%f, throttle_gain=%f, brake_gain=%f\n",
+           cfg_.a_max, cfg_.delta_max, cfg_.L, cfg_.throttle_gain, cfg_.brake_gain);
 }
 
-// we should move everything over to double but I already wrote all the message types in float
-// and I'm too lazy to switch so we'll do it later
 AckermannController::Command AckermannController::compute_command(const vec3f& acc, const vec3f& vel)
 {
     Command cmd{};
 
-    double a_long = std::clamp(
-        (double)acc.x,
-        -cfg_.a_max, 
-        cfg_.a_max
-    );
-
+    double a_long = std::clamp((double)acc.x, -cfg_.a_max, cfg_.a_max);
     double a_lat = acc.y;
 
     double speed = vel.length();
@@ -78,9 +70,19 @@ AckermannController::Command AckermannController::compute_command(const vec3f& a
     double delta = std::atan(cfg_.L * kappa);
     delta = std::clamp(delta, -cfg_.delta_max, cfg_.delta_max);
 
-    double throttle = std::clamp(a_long / cfg_.a_max * cfg_.throttle_gain, -1.0, 1.0);
+    double throttle = 0.0;
+    double brake = 0.0;
+
+    if (a_long >= 0.0) {
+        throttle = std::clamp(a_long / cfg_.a_max * cfg_.throttle_gain, 0.0, 1.0);
+        brake = 0.0;
+    } else {
+        throttle = 0.0;
+        brake = std::clamp(-a_long / cfg_.a_max * cfg_.brake_gain, 0.0, 1.0);
+    }
 
     cmd.throttle = throttle;
+    cmd.brake = brake;
     cmd.steering = delta;
 
     return cmd;

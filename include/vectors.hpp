@@ -8,10 +8,16 @@
 #define AP1_VECTOR_HPP
 
 #include <format>
-#include <iostream>
 #include <math.h>
 #include <stdexcept>
 #include <stdlib.h>
+
+template <typename T>
+float distance(const T &v1, const T &v2) {
+    return std::sqrt(
+        std::pow(v1.x - v2.x, 2) + std::pow(v1.y - v2.y, 2)
+    );
+}
 
 // 2D vector class
 class vec2f

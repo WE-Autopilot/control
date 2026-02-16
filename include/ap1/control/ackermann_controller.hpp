@@ -21,14 +21,16 @@ class AckermannController
         double L;             // wheelbase in meters
         double a_max;         // max longitudinal accleration (ms^-2)
         double delta_max;     // max steering angle
-        double throttle_gain; // scales accel to throttle [-1, 1]
+        double throttle_gain; // scales accel to throttle [0, 1]
+        double brake_gain;    // scales -accel to brake [0, 1]
     };
 
     explicit AckermannController(const Config &cfg);
 
     struct Command
     {
-        double throttle; // normalized [-1, 1]
+        double throttle; // normalized [0, 1]
+        double brake; // normalized [0, 1]
         double steering; // in rads
     };
 

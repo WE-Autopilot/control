@@ -3,8 +3,8 @@
  * Author(s): Aly Ashour
  */
 
-#include <format>
-#include <iostream>
+#include <cmath>
+#include <stdexcept>
 #include <string>
 
 #include "rclcpp/rclcpp.hpp"
@@ -21,69 +21,78 @@
 using namespace ap1_msgs::msg;
 using namespace ap1::control;
 
-void ControlNode::on_speed_profile(const SpeedProfileStamped speed_profile)
+void ControlNode::on_speed_profile(const SpeedProfileStamped::SharedPtr speed_profile)
 {
     speed_profile_ = speed_profile;
 }
 
-void ControlNode::on_path(const TargetPathStamped target_path)
+void ControlNode::on_path(const TargetPathStamped::SharedPtr target_path)
 {
     target_path_ = target_path;
 }
 
-void ControlNode::on_speed(const FloatStamped speed)
+void ControlNode::on_speed(const FloatStamped::SharedPtr speed)
 {
+    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Received speed from actuation: %.2f", speed->value);
     vehicle_speed_ = speed;
 }
 
-void ControlNode::on_turn_angle(const FloatStamped turn_angle)
+void ControlNode::on_turn_angle(const FloatStamped::SharedPtr turn_angle)
 {
     vehicle_turn_angle = turn_angle;
 }
 
+// TODO: refactor. This is just a mess of spaghetti code vro.
 void ControlNode::control_loop_callback()
 {
+    // check that we have the car's velocity yet
+    if (!this->vehicle_speed_) { // TODO: really we should safety stop all of ap1 on a NAN
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "Velocity is null or nan fam. Skipping update.");
+        return;
+    }
+
+    // TEMP: DEBUG
+    if (std::isnan(this->vehicle_speed_->value)) {
+        throw std::runtime_error("Vehicle speed is nan. Crashing");
+    }
+    
     // the car's current velocity. we only support moving forward atp
-    const vec3f velocity(this->vehicle_speed_.value, 0, 0); // +x is always forward on the car
+    const vec3f velocity(this->vehicle_speed_->value, 0, 0); // +x is always forward on the car
 
     const bool PATH_IS_STALE = false, SPEED_PROFILE_IS_STALE = false; // TEMP
 
     // if path has no waypoints OR path is too old
-    if (target_path_.path.size() < 1 || PATH_IS_STALE)
-        return; // don't update
-                // todo: ideally this should actually still
-                // send through the speed control
-                // but we'll implement that later
+    if (!target_path_ || target_path_->path.size() < 1 || PATH_IS_STALE) {
+        RCLCPP_WARN(this->get_logger(), "Target path is cooked fam. Null, not enough waypoints, or old, skipping."); // TODO: should be throttled
+        return;       
+    }
 
     // if speed profile has no waypoints or speed profile is too old
-    if (speed_profile_.speeds.size() < 1 || SPEED_PROFILE_IS_STALE)
+    if (!speed_profile_ || speed_profile_->speeds.size() < 1 || SPEED_PROFILE_IS_STALE) {
+        RCLCPP_WARN(this->get_logger(), "Speed profile is cooked fam. Null, not enough waypoints, or old, skipping.");
         return;
+    }
 
     // ask the controller to calculate the acceleration needed
-    // for now we'll only consider the very next waypoint & speed value
-    auto next_waypoint = target_path_.path.at(0);
-    const vec3f acc = controller_->compute_acceleration(
-        velocity, vec2f(next_waypoint.x, next_waypoint.y), speed_profile_.speeds.at(0));
+    const vec3f acc = controller_->compute_acceleration(velocity, target_path_, speed_profile_->speeds.at(0));
 
-    // log
-    // RCLCPP_INFO(this->get_logger(), "ACC: %.2f, %.2f, %.2f", acc.x, acc.y, acc.z);
+    // ALY'S FAVOURITE DEBUG CMD 1
+    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 700, "ACC: %.2f, %.2f, %.2f", acc.x, acc.y, acc.z);
 
     // compute acc and throttle using ackermann controller
     AckermannController::Command cmd = ackermann_controller_.compute_command(acc, velocity);
 
-    // DEBUG
-    // RCLCPP_INFO(this->get_logger(), "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
+    // ALY'S FAVOURITE DEBUG CMD 2
+    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 700, "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
 
     // pack the turn angle into a message
     FloatStamped turn_msg;
     turn_msg.header.stamp = this->now();
-    turn_msg.header.frame_id = "base_link";
     turn_msg.value = cmd.steering; // rads
 
     // pack the power into a message
     FloatStamped pwr_msg;
     pwr_msg.header.stamp = this->now();
-    pwr_msg.header.frame_id = "base_link";
     pwr_msg.value = cmd.throttle; // [-1, 1]
 
     // send both messages out
