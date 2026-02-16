@@ -7,9 +7,10 @@
 
 ### v0.1.1 - WIP
 - [x] Fix control issue. Does not accelerate in 3D.
-- [ ] Add braking
+- [x] Add braking
 - [ ] Add reversing
 - [ ] Add turn output
+- [ ] Fix turning bug
 
 ### v0.1.2 - WIP
 - [ ] Add MPC

@@ -77,13 +77,13 @@ void ControlNode::control_loop_callback()
     const vec3f acc = controller_->compute_acceleration(velocity, target_path_, speed_profile_->speeds.at(0));
 
     // ALY'S FAVOURITE DEBUG CMD 1
-    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 700, "ACC: %.2f, %.2f, %.2f", acc.x, acc.y, acc.z);
+    // RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 700, "ACC: %.2f, %.2f, %.2f", acc.x, acc.y, acc.z);
 
     // compute acc and throttle using ackermann controller
     AckermannController::Command cmd = ackermann_controller_.compute_command(acc, velocity);
 
     // ALY'S FAVOURITE DEBUG CMD 2
-    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 700, "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
+    // RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 700, "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
 
     // pack the turn angle into a message
     FloatStamped turn_msg;
@@ -95,9 +95,15 @@ void ControlNode::control_loop_callback()
     pwr_msg.header.stamp = this->now();
     pwr_msg.value = cmd.throttle; // [-1, 1]
 
-    // send both messages out
+    // pack the brake into a message
+    FloatStamped brake_msg;
+    brake_msg.header.stamp = this->now();
+    brake_msg.value = cmd.brake;
+
+    // send all messages out
     turning_angle_pub_->publish(turn_msg);
     motor_power_pub_->publish(pwr_msg);
+    brake_pub_->publish(brake_msg);
 }
 
 ControlNode::ControlNode(const std::string& cfg_path, float rate_hz)
@@ -121,6 +127,7 @@ ControlNode::ControlNode(const std::string& cfg_path, float rate_hz)
     // Pubs
     turning_angle_pub_ = this->create_publisher<FloatStamped>("/ap1/control/turn_angle", 1);
     motor_power_pub_ = this->create_publisher<FloatStamped>("/ap1/control/motor_power", 1);
+    brake_pub_ = this->create_publisher<FloatStamped>("/ap1/control/brake", 1);
 
     // Create Control Loop
     timer_ = this->create_wall_timer(std::chrono::duration<double>(1.0 / rate_hz),

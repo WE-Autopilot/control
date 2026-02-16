@@ -47,7 +47,8 @@ class ControlNode : public rclcpp::Node
 
     // Pubs
     rclcpp::Publisher<ap1_msgs::msg::FloatStamped>::SharedPtr turning_angle_pub_;
-    rclcpp::Publisher<ap1_msgs::msg::FloatStamped>::SharedPtr motor_power_pub_; // between -1 and 1? probably
+    rclcpp::Publisher<ap1_msgs::msg::FloatStamped>::SharedPtr motor_power_pub_;
+    rclcpp::Publisher<ap1_msgs::msg::FloatStamped>::SharedPtr brake_pub_;
 
     // Methods
     void on_speed_profile(const ap1_msgs::msg::SpeedProfileStamped::SharedPtr speed_profile);
