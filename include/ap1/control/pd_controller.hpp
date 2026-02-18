@@ -27,8 +27,8 @@ using ap1_msgs::msg::TargetPathStamped;
 inline vec2f get_target_position(const TargetPathStamped::ConstSharedPtr path) {
     uint wpt_idx = 0;
 
-    while (wpt_idx < MAX_WAYPOINT_SEARCH) {
-        const vec2f next{(float) path->path[wpt_idx].x, (float) path->path[wpt_idx].y};
+    while (wpt_idx < MAX_WAYPOINT_SEARCH && wpt_idx < path->path.size()) {
+        const vec2f next{(float) path->path.at(wpt_idx).x, (float) path->path.at(wpt_idx).y};
         const vec2f origin{0, 0};
 
         // if the waypoint and the origin are far enough apart
@@ -96,10 +96,6 @@ class PDController : public IController
 
         // Scale direction vector by target speed for velocity
         vec3f targetVel = targetDir * target_speed;
-
-        std::cout << "target_dir_x (SHOULD BE 1): " << targetDir.x
-                  << ", target_dir_y: " << targetDir.y
-                  << "\ntarget_vel_x (should be target speed): " << targetVel.x << "\n";
 
         // Store current velocity for derivative approximation
         last_vel_ = vel;

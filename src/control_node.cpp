@@ -33,7 +33,6 @@ void ControlNode::on_path(const TargetPathStamped::SharedPtr target_path)
 
 void ControlNode::on_speed(const FloatStamped::SharedPtr speed)
 {
-    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Received speed from actuation: %.2f", speed->value);
     vehicle_speed_ = speed;
 }
 
@@ -51,11 +50,6 @@ void ControlNode::control_loop_callback()
         return;
     }
 
-    // TEMP: DEBUG
-    if (std::isnan(this->vehicle_speed_->value)) {
-        throw std::runtime_error("Vehicle speed is nan. Crashing");
-    }
-    
     // the car's current velocity. we only support moving forward atp
     const vec3f velocity(this->vehicle_speed_->value, 0, 0); // +x is always forward on the car
 

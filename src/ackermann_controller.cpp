@@ -7,11 +7,10 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
-#include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 #include "vectors.hpp"
 #include "ap1/control/ackermann_controller.hpp"

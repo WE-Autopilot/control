@@ -6,8 +6,9 @@
 - [x] Control laterally (no rev, no brake)
 
 ### v0.1.1 - WIP
-- [x] Fix control issue. Does not accelerate in 3D.
-- [x] Add braking
+- [ ] Fix control issue. Does not accelerate in 3D.
+- [x] Fix null issue in acceleration.
+- [ ] Add braking
 - [ ] Add reversing
 - [ ] Add turn output
 - [ ] Fix turning bug
