@@ -50,20 +50,20 @@ void ControlNode::control_loop_callback()
         return;
     }
 
-    // the car's current velocity. we only support moving forward atp
+    // the car's current velocity - the car only ever moves forward G
     const vec3f velocity(this->vehicle_speed_->value, 0, 0); // +x is always forward on the car
 
     const bool PATH_IS_STALE = false, SPEED_PROFILE_IS_STALE = false; // TEMP
 
     // if path has no waypoints OR path is too old
     if (!target_path_ || target_path_->path.size() < 1 || PATH_IS_STALE) {
-        RCLCPP_WARN(this->get_logger(), "Target path is cooked fam. Null, not enough waypoints, or old, skipping."); // TODO: should be throttled
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Target path is invalid. Null, not enough waypoints, or old, skipping.");
         return;       
     }
 
     // if speed profile has no waypoints or speed profile is too old
     if (!speed_profile_ || speed_profile_->speeds.size() < 1 || SPEED_PROFILE_IS_STALE) {
-        RCLCPP_WARN(this->get_logger(), "Speed profile is cooked fam. Null, not enough waypoints, or old, skipping.");
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Speed profile is invalid. Null, not enough waypoints, or old, skipping.");
         return;
     }
 
@@ -77,7 +77,7 @@ void ControlNode::control_loop_callback()
     AckermannController::Command cmd = ackermann_controller_.compute_command(acc, velocity);
 
     // ALY'S FAVOURITE DEBUG CMD 2
-    // RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 700, "CMD: {throttle: %.2f, steering: %.2f}", cmd.throttle, cmd.steering);
+    // RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 700, "CMD: {throttle: %.2f, steering: %.2f, brake: %.2f}", cmd.throttle, cmd.steering, cmd.brake);
 
     // pack the turn angle into a message
     FloatStamped turn_msg;

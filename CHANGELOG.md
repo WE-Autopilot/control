@@ -6,12 +6,13 @@
 - [x] Control laterally (no rev, no brake)
 
 ### v0.1.1 - WIP
-- [ ] Fix control issue. Does not accelerate in 3D.
+- [x] Fix control issue. Does not accelerate in 3D.
 - [x] Fix null issue in acceleration.
-- [ ] Add braking
+- [x] Add braking
 - [ ] Add reversing
-- [ ] Add turn output
-- [ ] Fix turning bug
+- [x] Add turn output
+- [x] Fix turning bug
+- [ ] Throttle all main loop logs
 
 ### v0.1.2 - WIP
 - [ ] Add MPC

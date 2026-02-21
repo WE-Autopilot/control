@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -67,22 +68,15 @@ AckermannController::Command AckermannController::compute_command(const vec3f& a
     double speed = vel.length();
     double kappa = (speed > EPSILON) ? a_lat / (speed * speed) : 0.0;
     double delta = std::atan(cfg_.L * kappa);
-    delta = std::clamp(delta, -cfg_.delta_max, cfg_.delta_max);
-
-    double throttle = 0.0;
-    double brake = 0.0;
+    cmd.steering = delta = std::clamp(delta, -cfg_.delta_max, cfg_.delta_max);
 
     if (a_long >= 0.0) {
-        throttle = std::clamp(a_long / cfg_.a_max * cfg_.throttle_gain, 0.0, 1.0);
-        brake = 0.0;
+        cmd.throttle = std::clamp(a_long / cfg_.a_max * cfg_.throttle_gain, 0.0, 1.0);
+        cmd.brake = 0.0;
     } else {
-        throttle = 0.0;
-        brake = std::clamp(-a_long / cfg_.a_max * cfg_.brake_gain, 0.0, 1.0);
+        cmd.throttle = 0.0;
+        cmd.brake = std::clamp(-a_long / cfg_.a_max * cfg_.brake_gain, 0.0, 1.0);
     }
-
-    cmd.throttle = throttle;
-    cmd.brake = brake;
-    cmd.steering = delta;
 
     return cmd;
 }
@@ -93,14 +87,11 @@ AckermannController::Config AckermannController::load_config(const std::string& 
 
     auto map = load_csv_config(path);
 
-    if (map.count("wheelbase"))
-        cfg.L = map["wheelbase"];
-    if (map.count("a_max"))
-        cfg.a_max = map["a_max"];
-    if (map.count("delta_max"))
-        cfg.delta_max = map["delta_max"];
-    if (map.count("throttle_gain"))
-        cfg.throttle_gain = map["throttle_gain"];
+    cfg.L = map["wheelbase"];
+    cfg.a_max = map["a_max"];
+    cfg.delta_max = map["delta_max"];
+    cfg.throttle_gain = map["throttle_gain"];
+    cfg.brake_gain = map["brake_gain"];
 
     return cfg;
 }
