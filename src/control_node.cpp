@@ -46,7 +46,7 @@ void ControlNode::control_loop_callback()
 {
     // check that we have the car's velocity yet
     if (!this->vehicle_speed_) { // TODO: really we should safety stop all of ap1 on a NAN
-        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "Velocity is null or nan fam. Skipping update.");
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "Velocity is null or nan. Skipping update.");
         return;
     }
 
